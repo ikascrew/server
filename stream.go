@@ -115,7 +115,7 @@ func (s *Stream) Get() (*gocv.Mat, error) {
 	}
 
 	if old == nil {
-		log.Printf("old == nil")
+		//log.Printf("old == nil")
 		return s.now_video.Next()
 	}
 

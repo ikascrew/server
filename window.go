@@ -64,7 +64,7 @@ func (w *Window) Play(v core.Video) error {
 	}
 
 	for {
-		log.Printf("Main Loop")
+		//log.Printf("Main Loop")
 		select {
 		case v := <-w.wait:
 			err := w.stream.Switch(v)
@@ -77,7 +77,7 @@ func (w *Window) Play(v core.Video) error {
 				log.Printf("Window Display Error:", err)
 			}
 		}
-		log.Printf("Main Loop End")
+		//log.Printf("Main Loop End")
 	}
 
 	return fmt.Errorf("Error : Stream is nil")

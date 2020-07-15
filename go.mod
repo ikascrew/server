@@ -6,15 +6,14 @@ require (
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/gops v0.3.7 // indirect
 	github.com/gordonklaus/portaudio v0.0.0-20180817120803-00e7307ccd93 // indirect
-	github.com/ikascrew/core v0.0.0-20200323195127-33bbb0a3cd4e
+	github.com/ikascrew/core v0.0.0-20200715080454-ca77dd640e0d
 	github.com/ikascrew/go-opencv v0.0.0-20171108105817-beed5ac470ba // indirect
-	github.com/ikascrew/ikasbox v0.0.0-20200222125414-57f83b9e51ee
+	github.com/ikascrew/ikasbox v0.0.0-20200712003025-49f1509df2bf
 	github.com/ikascrew/ikascrew v0.0.0-20170821023227-0c3f5d5cfc00 // indirect
 	github.com/ikascrew/pb v0.0.0-20200229215417-95f0a80962e7
-	github.com/ikascrew/plugin v0.0.0-20200323221155-9ee0ef16d844
+	github.com/ikascrew/plugin v0.0.0-20200715234203-87c9c5b19416
 	github.com/ikascrew/powermate v0.0.0-20170724041315-7b09f8e1cf88 // indirect
-	github.com/mattn/go-runewidth v0.0.8 // indirect
-	github.com/shirou/gopsutil v2.20.6+incompatible // indirect
+	github.com/shirou/gopsutil v2.20.6+incompatible
 	gocv.io/x/gocv v0.23.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
