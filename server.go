@@ -2,14 +2,11 @@ package server
 
 import (
 	"fmt"
-	"runtime"
-	"strconv"
-	"strings"
+	"log"
 
+	mc "github.com/ikascrew/core/multicast"
 	"github.com/ikascrew/server/config"
 
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/mem"
 	"golang.org/x/xerrors"
 )
 
@@ -26,19 +23,20 @@ type IkascrewServer struct {
 	window *Window
 }
 
-func Start(d string) error {
+func Start(p int, opts ...config.Option) error {
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	p, err := strconv.Atoi(d)
-	if err != nil {
-		return xerrors.Errorf("argument error: %w", err)
-	}
-
-	err = config.Load(p)
+	err := config.Set(p, opts...)
 	if err != nil {
 		return xerrors.Errorf("config error: %w", err)
 	}
+
+	//server multicast
+	go func() {
+		err := startMulticast()
+		if err != nil {
+			log.Println("start multicast : %+v", err)
+		}
+	}()
 
 	buf := createTerminal()
 	v, err := Get("terminal", buf.String())
@@ -62,55 +60,20 @@ func Start(d string) error {
 	return win.Play(v)
 }
 
-func createTerminal() *strings.Builder {
+func startMulticast() error {
 
-	var b strings.Builder
-	var err error
+	udp, err := mc.NewServer(
+		mc.ServerName("ikascrew server"),
+	)
 
-	cs, err := cpu.Info()
-	cpuLine := make([]string, 0)
-	if err == nil {
-		c := cs[0]
-		cpuLine = append(cpuLine, fmt.Sprintf("    CPU -> %s x %d x %d", c.ModelName, c.Cores, len(cs)))
-	} else {
-		cpuLine = append(cpuLine, fmt.Sprintf("    CPU Error :%s ", err.Error()))
+	if err != nil {
+		return xerrors.Errorf("udp open error: %w", err)
 	}
 
-	memLine := make([]string, 0)
-	m, err := mem.VirtualMemory()
-	if err == nil {
-		// structが返ってきます。
-		memLine = append(memLine, fmt.Sprintf("    Mem:Total: %v, Free:%v", m.Total, m.Free))
-	} else {
-		memLine = append(memLine, fmt.Sprintf("    Mem Error :%s ", err.Error()))
+	err = udp.Dial()
+	if err != nil {
+		return xerrors.Errorf("udp dial error: %w", err)
 	}
 
-	dispLine := make([]string, 0)
-	dispLine = append(dispLine, fmt.Sprintf("    DISPLAY:%d x %d", 1280, 720))
-
-	//CPU
-	//MEM
-	b.WriteString("I am ikascrew.\n")
-	b.WriteString("I am a program born to transform \"VJ System\".\n")
-	b.WriteString("\n")
-	b.WriteString("Today's system:\n")
-
-	for _, line := range cpuLine {
-		b.WriteString(line + "\n")
-	}
-
-	for _, line := range memLine {
-		b.WriteString(line + "\n")
-	}
-
-	for _, line := range dispLine {
-		b.WriteString(line + "\n")
-	}
-	b.WriteString("\n")
-
-	b.WriteString("I am a ready.\n")
-	b.WriteString("When you're ready?\n")
-	b.WriteString("Let's get started!")
-
-	return &b
+	return nil
 }

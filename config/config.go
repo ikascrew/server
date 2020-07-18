@@ -11,12 +11,17 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type AppConfig struct {
-	Width   int
-	Height  int
-	Default Default
+type Config struct {
+	Port int
 
-	Contents map[int]*Content
+	DBIP   string
+	DBPort int
+
+	ProjectID int
+	Width     int
+	Height    int
+	Default   Default
+	Contents  map[int]*Content
 }
 
 type Content struct {
@@ -30,22 +35,46 @@ type Default struct {
 	Name string
 }
 
-var conf *AppConfig
+var gConf *Config
 
 func init() {
-	conf = nil
+	gConf = nil
 }
 
-func Get() *AppConfig {
-	return conf
+func Set(p int, opts ...Option) error {
+
+	conf := defaultConfig()
+	for _, opt := range opts {
+		err := opt(conf)
+		if err != nil {
+		}
+	}
+
+	err := load(p, conf)
+	if err != nil {
+		return xerrors.Errorf("project[%d] load error: %w", p, err)
+	}
+
+	gConf = conf
+
+	return nil
 }
 
-const boxIP = "localhost"
-const boxPort = "5555"
+func Get() *Config {
+	return gConf
+}
 
-func Load(p int) error {
+func defaultConfig() *Config {
+	c := Config{}
+	c.Port = 55555
+	c.DBIP = "localhost"
+	c.DBPort = 5555
+	return &c
+}
 
-	url := fmt.Sprintf("http://"+boxIP+":"+boxPort+"/project/content/list/%d", p)
+func load(p int, conf *Config) error {
+
+	url := fmt.Sprintf("http://%s:%d/project/content/list/%d", conf.BoxIP, conf.BoxPort, p)
 	resp, err := http.Get(url)
 	if err != nil {
 		return xerrors.Errorf("http get: %w", err)
@@ -70,13 +99,11 @@ func Load(p int) error {
 		Name: "blank",
 	}
 
-	app := AppConfig{
-		Width:   res.Project.Width,
-		Height:  res.Project.Height,
-		Default: def,
-	}
+	conf.Width = res.Project.Width
+	conf.Height = res.Project.Height
+	conf.Default = def
 
-	app.Contents = make(map[int]*Content)
+	conf.Contents = make(map[int]*Content)
 
 	for _, elm := range res.Contents {
 		con := Content{}
@@ -84,10 +111,8 @@ func Load(p int) error {
 		con.Path = elm.Path
 		con.ContentID = elm.ContentID
 
-		app.Contents[elm.ID] = &con
+		conf.Contents[elm.ID] = &con
 	}
-
-	conf = &app
 
 	return nil
 }

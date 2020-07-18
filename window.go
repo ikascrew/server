@@ -54,9 +54,7 @@ func (w *Window) Play(v core.Video) error {
 	w.win = win
 
 	win.MoveWindow(0, 0)
-
 	win.ResizeWindow(640, 360)
-	//w.FullScreen()
 
 	err := w.stream.Switch(v)
 	if err != nil {
@@ -90,6 +88,7 @@ func (w *Window) Display() error {
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 	go func() {
+		//???
 		time.Sleep(w.stream.Wait() * time.Millisecond)
 		wg.Done()
 	}()
