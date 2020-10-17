@@ -13,12 +13,6 @@ import (
 func init() {
 }
 
-const ADDRESS = ":55555"
-
-func Address() string {
-	return ADDRESS
-}
-
 type IkascrewServer struct {
 	window *Window
 }

@@ -11,8 +11,8 @@ func Port(p int) Option {
 
 func Database(ip string, port int) Option {
 	return func(conf *Config) error {
-		conf.BoxIP = ip
-		conf.BoxPort = port
+		conf.DBIP = ip
+		conf.DBPort = port
 		return nil
 	}
 }
