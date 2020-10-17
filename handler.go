@@ -2,16 +2,17 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strings"
 
-	"golang.org/x/net/context"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
 	"github.com/ikascrew/pb"
 	"github.com/ikascrew/server/config"
+
+	"golang.org/x/net/context"
+	"golang.org/x/xerrors"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func init() {
@@ -19,9 +20,15 @@ func init() {
 
 func (i *IkascrewServer) startRPC() error {
 
-	lis, err := net.Listen("tcp", ":55555")
+	conf := config.Get()
+
+	host := fmt.Sprintf(":%d", conf.Port)
+
+	log.Println("Listen gRPC " + host)
+
+	lis, err := net.Listen("tcp", host)
 	if err != nil {
-		return err
+		return xerrors.Errorf("tcp listen port(%s): %w", host, err)
 	}
 
 	s := grpc.NewServer()
@@ -29,8 +36,7 @@ func (i *IkascrewServer) startRPC() error {
 
 	reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
-		fmt.Println("failed to serve: %v", err)
-		panic(err)
+		return xerrors.Errorf("start grpc server: %w", err)
 	}
 	return nil
 }
@@ -60,6 +66,11 @@ func (i *IkascrewServer) Effect(ctx context.Context, r *pb.EffectRequest) (*pb.E
 		return nil, fmt.Errorf("Content not found[%d]", r.Id)
 	}
 	fmt.Printf("[%s]-[%s]\n", r.Type, content.Path)
+	if strings.Index(content.Path, ".jpg") >= 0 ||
+		strings.Index(content.Path, ".jpeg") >= 0 ||
+		strings.Index(content.Path, ".png") >= 0 {
+		r.Type = "img"
+	}
 
 	if strings.Index(content.Path, "jpg") != -1 ||
 		strings.Index(content.Path, ".jpeg") != -1 ||

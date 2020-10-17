@@ -15,12 +15,6 @@ import (
 func init() {
 }
 
-const Port = ":55555"
-
-func Address() string {
-	return Port
-}
-
 type IkascrewServer struct {
 	window *Window
 }
