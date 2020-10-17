@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	"sync"
-	"time"
 
 	"github.com/ikascrew/core"
 
@@ -37,9 +35,9 @@ func NewWindow(name string) (*Window, error) {
 }
 
 func (w *Window) Push(v core.Video) error {
-	w.stream.PrintVideos("Push Start")
 	w.wait <- v
-	w.stream.PrintVideos("Push End")
+
+	//w.stream.PrintVideos("Push")
 	return nil
 }
 
@@ -62,7 +60,6 @@ func (w *Window) Play(v core.Video) error {
 	}
 
 	for {
-		//log.Printf("Main Loop")
 		select {
 		case v := <-w.wait:
 			err := w.stream.Switch(v)
@@ -75,7 +72,6 @@ func (w *Window) Play(v core.Video) error {
 				log.Printf("Window Display Error:", err)
 			}
 		}
-		//log.Printf("Main Loop End")
 	}
 
 	return fmt.Errorf("Error : Stream is nil")
@@ -85,26 +81,28 @@ var counter = 0
 
 func (w *Window) Display() error {
 
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	go func() {
-		//???
-		time.Sleep(w.stream.Wait() * time.Millisecond)
-		wg.Done()
-	}()
+	/*
+		wg := new(sync.WaitGroup)
+		wg.Add(1)
+		go func() {
+			time.Sleep(w.stream.Wait() * time.Millisecond)
+			wg.Done()
+		}()
+	*/
 
 	//イメージを取得
 	img, err := w.stream.Get()
 	if err != nil {
 		return err
 	}
+
 	//作成
 	add := w.stream.Add(*img)
 	//表示
 	w.win.IMShow(*add)
-	w.win.WaitKey(1)
+	w.win.WaitKey(int(w.stream.Wait()))
 
-	wg.Wait()
+	//wg.Wait()
 
 	return nil
 }

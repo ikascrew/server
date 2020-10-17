@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"golang.org/x/net/context"
 
@@ -56,10 +57,15 @@ func (i *IkascrewServer) Effect(ctx context.Context, r *pb.EffectRequest) (*pb.E
 
 	content, ok := conf.Contents[int(r.Id)]
 	if !ok {
-		return nil, fmt.Errorf("Content not found[%dj]", r.Id)
+		return nil, fmt.Errorf("Content not found[%d]", r.Id)
 	}
-
 	fmt.Printf("[%s]-[%s]\n", r.Type, content.Path)
+
+	if strings.Index(content.Path, "jpg") != -1 ||
+		strings.Index(content.Path, ".jpeg") != -1 ||
+		strings.Index(content.Path, ".png") != -1 {
+		r.Type = "img"
+	}
 
 	v, err := Get(r.Type, content.Path)
 	if err != nil {

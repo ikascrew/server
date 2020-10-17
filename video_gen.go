@@ -9,6 +9,8 @@ import (
 	file "github.com/ikascrew/plugin/file"
 	img "github.com/ikascrew/plugin/image"
 	term "github.com/ikascrew/plugin/terminal"
+
+	"golang.org/x/xerrors"
 )
 
 var NotFoundError = fmt.Errorf("NotFound Video Type")
@@ -30,7 +32,7 @@ func Get(t string, params ...string) (core.Video, error) {
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("video new[%s]: %w", t, err)
 	}
 
 	if v == nil {

@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/ikascrew/core"
 	"github.com/ikascrew/server/config"
@@ -78,6 +77,7 @@ func NewStream() (*Stream, error) {
 }
 
 func (s *Stream) Switch(v core.Video) error {
+
 	if s.used[v.Source()] {
 		return fmt.Errorf("until used video")
 	}
@@ -167,6 +167,7 @@ func (s *Stream) getOldImage() (*gocv.Mat, error) {
 	if next == nil {
 		return &s.old_image, nil
 	}
+
 	now, _ := s.release_video.Next()
 	if now == nil {
 		return &s.old_image, nil
@@ -193,8 +194,8 @@ func (s *Stream) Release() {
 	}
 }
 
-func (s *Stream) Wait() time.Duration {
-	return time.Duration(s.wait + 33.0)
+func (s *Stream) Wait() float64 {
+	return s.wait + 33.0
 }
 
 func (s *Stream) PrintVideos(line string) {

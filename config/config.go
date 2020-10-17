@@ -67,6 +67,7 @@ func Get() *Config {
 func defaultConfig() *Config {
 	c := Config{}
 	c.Port = 55555
+
 	c.DBIP = "localhost"
 	c.DBPort = 5555
 	return &c
@@ -74,7 +75,7 @@ func defaultConfig() *Config {
 
 func load(p int, conf *Config) error {
 
-	url := fmt.Sprintf("http://%s:%d/project/content/list/%d", conf.BoxIP, conf.BoxPort, p)
+	url := fmt.Sprintf("http://%s:%d/project/content/list/%d", conf.DBIP, conf.DBPort, p)
 	resp, err := http.Get(url)
 	if err != nil {
 		return xerrors.Errorf("http get: %w", err)

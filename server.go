@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	mc "github.com/ikascrew/core/multicast"
+	"github.com/ikascrew/pb"
 	"github.com/ikascrew/server/config"
 
 	"golang.org/x/xerrors"
@@ -13,15 +15,17 @@ import (
 func init() {
 }
 
-const ADDRESS = ":55555"
+const Port = ":55555"
 
 func Address() string {
-	return ADDRESS
+	return Port
 }
 
 type IkascrewServer struct {
 	window *Window
 }
+
+var server *IkascrewServer
 
 func Start(p int, opts ...config.Option) error {
 
@@ -38,6 +42,7 @@ func Start(p int, opts ...config.Option) error {
 		}
 	}()
 
+	//start video
 	buf := createTerminal()
 	v, err := Get("terminal", buf.String())
 	if err != nil {
@@ -57,7 +62,30 @@ func Start(p int, opts ...config.Option) error {
 		ika.startRPC()
 	}()
 
+	server = ika
+
 	return win.Play(v)
+}
+
+//test method
+func Set(id int) error {
+	req := pb.EffectRequest{}
+	req.Id = int64(id)
+	req.Type = "file"
+	_, err := server.Effect(context.Background(), &req)
+	return err
+}
+
+//test method
+func Put(idx int) error {
+	req := pb.VolumeMessage{}
+
+	req.Index = int64(SWITCH)
+	req.Value = float64(idx) / 5.0 * 200.0
+
+	_, err := server.PutVolume(context.Background(), &req)
+
+	return err
 }
 
 func startMulticast() error {
