@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/ikascrew/ikasbox/handler"
@@ -76,6 +77,8 @@ func defaultConfig() *Config {
 func load(p int, conf *Config) error {
 
 	url := fmt.Sprintf("http://%s:%d/project/content/list/%d", conf.DBIP, conf.DBPort, p)
+
+	log.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return xerrors.Errorf("http get: %w", err)
@@ -110,9 +113,11 @@ func load(p int, conf *Config) error {
 		con := Content{}
 		con.Name = elm.Name
 		con.Path = elm.Path
-		con.ContentID = elm.ContentID
+		con.ContentID = elm.ID
 
 		conf.Contents[elm.ID] = &con
+
+		//fmt.Printf("%d=[%s][%s]\n", elm.ID, elm.Name, elm.Path)
 	}
 
 	return nil

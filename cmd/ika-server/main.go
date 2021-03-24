@@ -35,7 +35,7 @@ func run() error {
 		return xerrors.Errorf("ika-server start arguments project id required")
 	}
 
-	project := args[0]
+	project := args[1]
 	p, err := strconv.Atoi(project)
 	if err != nil {
 		return xerrors.Errorf("project id is int value(%s): %w", project, err)
