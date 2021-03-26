@@ -101,7 +101,7 @@ func (s *Stream) Switch(v core.Video) error {
 
 func (s *Stream) Add(org gocv.Mat) *gocv.Mat {
 
-	alpha := s.light / 200
+	alpha := s.light / 200 * -1
 	gocv.AddWeighted(s.empty_image, float64(alpha), org, float64(1.0-alpha), 0.0, &s.real_image)
 
 	return &s.real_image
@@ -195,7 +195,16 @@ func (s *Stream) Release() {
 }
 
 func (s *Stream) Wait() float64 {
-	return s.wait + 33.0
+
+	wait := 33.0 - (s.wait / 2)
+
+	if wait <= 1.0 {
+		wait = 1.0
+	} else if wait >= 100.0 {
+		wait = 100
+	}
+
+	return wait
 }
 
 func (s *Stream) PrintVideos(line string) {
