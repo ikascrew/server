@@ -39,6 +39,8 @@ func Start(p int, opts ...config.Option) error {
 	//start video
 	buf := createTerminal()
 	v, err := Get("terminal", buf.String())
+	//fmt.Println(buf.String())
+	//v, err := Get("cd", "Test")
 	if err != nil {
 		return fmt.Errorf("Error:Video Load[%v]", err)
 	}

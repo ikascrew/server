@@ -116,5 +116,13 @@ func (w *Window) Destroy() {
 }
 
 func (w *Window) FullScreen() {
-	w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowFullscreen)
+
+	val := w.win.GetWindowProperty(gocv.WindowPropertyFullscreen)
+	if int(val) == int(gocv.WindowFullscreen) {
+		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowNormal)
+		//w.win.SetWindowProperty(gocv.WindowPropertyAutosize, gocv.PropertyAutosize)
+		//w.win.SetWindowProperty(gocv.WindowPropertyAspectRatio, gocv.WindowKeepRatio)
+	} else {
+		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowFullscreen)
+	}
 }

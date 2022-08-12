@@ -61,21 +61,33 @@ func (i *IkascrewServer) Effect(ctx context.Context, r *pb.EffectRequest) (*pb.E
 
 	conf := config.Get()
 
-	content, ok := conf.Contents[int(r.Id)]
-	if !ok {
-		return nil, fmt.Errorf("Content not found[%d]", r.Id)
-	}
-	fmt.Printf("[%s]-[%s]\n", r.Type, content.Path)
-	if strings.Index(content.Path, ".jpg") >= 0 ||
-		strings.Index(content.Path, ".jpeg") >= 0 ||
-		strings.Index(content.Path, ".png") >= 0 {
-		r.Type = "img"
-	}
+	content := &config.Content{}
 
-	if strings.Index(content.Path, "jpg") != -1 ||
-		strings.Index(content.Path, ".jpeg") != -1 ||
-		strings.Index(content.Path, ".png") != -1 {
-		r.Type = "img"
+	if r.Id == 0 {
+
+		r.Type = "cd"
+
+	} else {
+
+		ok := false
+
+		content, ok = conf.Contents[int(r.Id)]
+		if !ok {
+			return nil, fmt.Errorf("Content not found[%d]", r.Id)
+		}
+
+		fmt.Printf("[%s]-[%s]\n", r.Type, content.Path)
+		if strings.Index(content.Path, ".jpg") >= 0 ||
+			strings.Index(content.Path, ".jpeg") >= 0 ||
+			strings.Index(content.Path, ".png") >= 0 {
+			r.Type = "img"
+		}
+
+		if strings.Index(content.Path, "jpg") != -1 ||
+			strings.Index(content.Path, ".jpeg") != -1 ||
+			strings.Index(content.Path, ".png") != -1 {
+			r.Type = "img"
+		}
 	}
 
 	v, err := Get(r.Type, content.Path)

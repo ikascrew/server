@@ -110,6 +110,7 @@ func load(p int, conf *Config) error {
 	conf.Contents = make(map[int]*Content)
 
 	for _, elm := range res.Contents {
+
 		con := Content{}
 		con.Name = elm.Name
 		con.Path = elm.Path
