@@ -36,8 +36,6 @@ func NewWindow(name string) (*Window, error) {
 
 func (w *Window) Push(v core.Video) error {
 	w.wait <- v
-
-	//w.stream.PrintVideos("Push")
 	return nil
 }
 
@@ -64,12 +62,12 @@ func (w *Window) Play(v core.Video) error {
 		case v := <-w.wait:
 			err := w.stream.Switch(v)
 			if err != nil {
-				log.Printf("Stream Push Error:", err)
+				log.Printf("Stream Push Error:%v", err)
 			}
 		default:
 			err := w.Display()
 			if err != nil {
-				log.Printf("Window Display Error:", err)
+				log.Printf("Window Display Error:%v", err)
 			}
 		}
 	}
@@ -120,8 +118,6 @@ func (w *Window) FullScreen() {
 	val := w.win.GetWindowProperty(gocv.WindowPropertyFullscreen)
 	if int(val) == int(gocv.WindowFullscreen) {
 		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowNormal)
-		//w.win.SetWindowProperty(gocv.WindowPropertyAutosize, gocv.PropertyAutosize)
-		//w.win.SetWindowProperty(gocv.WindowPropertyAspectRatio, gocv.WindowKeepRatio)
 	} else {
 		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowFullscreen)
 	}

@@ -72,11 +72,11 @@ func (i *IkascrewServer) Effect(ctx context.Context, r *pb.EffectRequest) (*pb.E
 		ok := false
 
 		content, ok = conf.Contents[int(r.Id)]
-		if !ok {
+		if !ok || r.Id == 105 {
 			return nil, fmt.Errorf("Content not found[%d]", r.Id)
 		}
 
-		fmt.Printf("[%s]-[%s]\n", r.Type, content.Path)
+		fmt.Printf("[%s]-[%d]-[%s]\n", r.Type, r.Id, content.Path)
 		if strings.Index(content.Path, ".jpg") >= 0 ||
 			strings.Index(content.Path, ".jpeg") >= 0 ||
 			strings.Index(content.Path, ".png") >= 0 {
@@ -130,7 +130,7 @@ func (i *IkascrewServer) PutVolume(ctx context.Context, msg *pb.VolumeMessage) (
 
 	switch s.mode {
 	case SWITCH:
-		s.now_value = val
+		s.videos.v(0).value = val
 	case LIGHT:
 		s.light = val
 	case WAIT:

@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/ikascrew/core"
 	"github.com/ikascrew/server/config"
@@ -11,17 +10,7 @@ import (
 )
 
 type Stream struct {
-	now_video core.Video
-	now_value float64
-	now_image gocv.Mat
-
-	old_video core.Video
-	old_value float64
-	old_image gocv.Mat
-
-	release_video core.Video
-
-	used map[string]bool
+	videos *Videos
 
 	nextFlag bool
 	prevFlag bool
@@ -35,6 +24,99 @@ type Stream struct {
 	mode int
 }
 
+type Videos struct {
+	src []*VideoSet
+}
+
+func NewVideos(l int, w, h int) *Videos {
+	var v Videos
+	v.src = make([]*VideoSet, l)
+
+	for idx := range v.src {
+		v.src[idx] = new(VideoSet)
+		v.src[idx].video = nil
+		v.src[idx].value = 0.0
+		v.src[idx].image = gocv.NewMatWithSize(h, w, gocv.MatTypeCV8UC3)
+	}
+	return &v
+}
+
+func (s *Videos) set(v core.Video) {
+
+	last := len(s.src) - 1
+	lastSet := s.v(last)
+	defer lastSet.Release()
+
+	for idx := last - 1; idx >= 0; idx-- {
+
+		v1 := s.v(idx)
+		v2 := s.v(idx + 1)
+
+		v2.value = v1.value
+		v2.video = v1.video
+	}
+
+	s.v(0).video = v
+	s.v(0).value = 0.0
+}
+
+func (s *Videos) release() {
+	for _, set := range s.src {
+		set.Release()
+	}
+}
+
+func (s *Videos) v(idx int) *VideoSet {
+	return s.src[idx]
+}
+
+func (s *Videos) NowValue() float64 {
+	return s.v(0).value
+}
+
+func (s *Videos) Get(val float64) (*gocv.Mat, error) {
+	s.v(0).value = val
+	return s.get(0)
+}
+
+func (s *Videos) get(idx int) (*gocv.Mat, error) {
+
+	if idx >= len(s.src) {
+		return nil, nil
+	}
+
+	v1 := s.v(idx)
+	if v1 == nil || v1.video == nil {
+		return nil, nil
+	}
+	next, _ := v1.video.Next()
+
+	v2, _ := s.get(idx + 1)
+	if v2 == nil {
+		return next, nil
+	}
+
+	alpha := v1.value / SWITCH_VALUE
+
+	gocv.AddWeighted(*next, float64(alpha), *v2, float64(1.0-alpha), 0.0, &v1.image)
+
+	return &v1.image, nil
+}
+
+type VideoSet struct {
+	video core.Video
+	value float64
+	image gocv.Mat
+}
+
+func (s *VideoSet) Release() {
+	s.image.Close()
+	if s.video != nil {
+		s.video.Release()
+		s.video = nil
+	}
+}
+
 const SWITCH_VALUE = 200
 
 const (
@@ -45,23 +127,12 @@ const (
 
 func NewStream() (*Stream, error) {
 
-	rtn := Stream{}
-
-	rtn.now_value = 0
-	rtn.old_value = 0
-
-	rtn.now_video = nil
-	rtn.old_video = nil
-	rtn.release_video = nil
-
-	rtn.used = make(map[string]bool)
 	conf := config.Get()
-
 	w := conf.Width
 	h := conf.Height
 
-	rtn.now_image = gocv.NewMatWithSize(h, w, gocv.MatTypeCV8UC3)
-	rtn.old_image = gocv.NewMatWithSize(h, w, gocv.MatTypeCV8UC3)
+	rtn := Stream{}
+	rtn.videos = NewVideos(5, w, h)
 
 	rtn.nextFlag = false
 	rtn.prevFlag = false
@@ -77,121 +148,49 @@ func NewStream() (*Stream, error) {
 }
 
 func (s *Stream) Switch(v core.Video) error {
-
-	if s.used[v.Source()] {
-		return fmt.Errorf("until used video")
-	}
-	s.used[v.Source()] = true
-
-	s.old_value = s.now_value
-	s.now_value = 0
-
-	wk := s.release_video
-	if wk != nil {
-		delete(s.used, wk.Source())
-		defer wk.Release()
-	}
-
-	s.release_video = s.old_video
-	s.old_video = s.now_video
-	s.now_video = v
-
+	s.videos.set(v)
 	return nil
 }
 
 func (s *Stream) Add(org gocv.Mat) *gocv.Mat {
-
 	alpha := s.light / 200 * -1
 	gocv.AddWeighted(s.empty_image, float64(alpha), org, float64(1.0-alpha), 0.0, &s.real_image)
-
 	return &s.real_image
 }
 
 func (s *Stream) Get() (*gocv.Mat, error) {
 
-	old, err := s.getOldImage()
-	if err != nil {
-		return nil, err
-	}
-
-	if old == nil {
-		//log.Printf("old == nil")
-		return s.now_video.Next()
-	}
-
+	val := s.videos.NowValue()
 	if s.nextFlag {
-		if s.now_value == SWITCH_VALUE {
+		if val == SWITCH_VALUE {
 			s.nextFlag = false
-		} else if s.now_value < SWITCH_VALUE {
-			s.now_value++
+		} else if val < SWITCH_VALUE {
+			val++
 		} else {
-			s.now_value--
+			val--
 		}
 	}
 
 	if s.prevFlag {
-		if s.now_value == 0 {
+		if val == 0 {
 			s.prevFlag = false
-		} else if s.now_value > 0 {
-			s.now_value--
+		} else if val > 0 {
+			val--
 		} else {
-			s.now_value++
+			val++
 		}
 	}
 
-	alpha := s.now_value / SWITCH_VALUE
-
-	next, err := s.now_video.Next()
+	v, err := s.videos.Get(val)
 	if err != nil {
-		log.Printf("Next video error", err)
 		return nil, err
 	}
 
-	gocv.AddWeighted(*next, float64(alpha), *old, float64(1.0-alpha), 0.0, &s.now_image)
-
-	return &s.now_image, nil
-}
-
-func (s *Stream) getOldImage() (*gocv.Mat, error) {
-
-	if s.release_video == nil {
-		if s.old_video != nil {
-			return s.old_video.Next()
-		}
-		return nil, nil
-	}
-
-	alpha := s.old_value / SWITCH_VALUE
-
-	next, _ := s.old_video.Next()
-	if next == nil {
-		return &s.old_image, nil
-	}
-
-	now, _ := s.release_video.Next()
-	if now == nil {
-		return &s.old_image, nil
-	}
-
-	gocv.AddWeighted(*next, float64(alpha), *now, float64(1.0-alpha), 0.0, &s.old_image)
-
-	return &s.old_image, nil
+	return v, nil
 }
 
 func (s *Stream) Release() {
-
-	s.now_image.Close()
-	s.old_image.Close()
-
-	if s.now_video != nil {
-		s.now_video.Release()
-	}
-	if s.old_video != nil {
-		s.old_video.Release()
-	}
-	if s.release_video != nil {
-		s.release_video.Release()
-	}
+	s.videos.release()
 }
 
 func (s *Stream) Wait() float64 {
@@ -205,21 +204,6 @@ func (s *Stream) Wait() float64 {
 	}
 
 	return wait
-}
-
-func (s *Stream) PrintVideos(line string) {
-	log.Printf(line + "-------------------------------------------------")
-	if s.now_video != nil {
-		log.Printf("[1]" + s.now_video.Source())
-	}
-
-	if s.old_video != nil {
-		log.Printf("[2]" + s.old_video.Source())
-	}
-
-	if s.release_video != nil {
-		log.Printf("[3]" + s.release_video.Source())
-	}
 }
 
 func (s *Stream) SetSwitch(t string) error {
