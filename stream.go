@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/ikascrew/core"
 	"github.com/ikascrew/server/config"
@@ -101,6 +102,10 @@ func (s *Stream) Switch(v core.Video) error {
 
 func (s *Stream) Add(org gocv.Mat) *gocv.Mat {
 
+	if s.light == 0 {
+		return &org
+	}
+
 	alpha := s.light / 200 * -1
 	gocv.AddWeighted(s.empty_image, float64(alpha), org, float64(1.0-alpha), 0.0, &s.real_image)
 
@@ -109,14 +114,45 @@ func (s *Stream) Add(org gocv.Mat) *gocv.Mat {
 
 func (s *Stream) Get() (*gocv.Mat, error) {
 
-	old, err := s.getOldImage()
-	if err != nil {
-		return nil, err
+	//3本のデコードは独立しているため並列に実行する
+	var next, oldNext, relNext *gocv.Mat
+	var err error
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		next, err = s.now_video.Next()
+	}()
+
+	if s.old_video != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			oldNext, _ = s.old_video.Next()
+		}()
 	}
+
+	if s.release_video != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			relNext, _ = s.release_video.Next()
+		}()
+	}
+
+	wg.Wait()
+
+	old := s.getOldImage(oldNext, relNext)
 
 	if old == nil {
 		//log.Printf("old == nil")
-		return s.now_video.Next()
+		return next, err
+	}
+
+	if err != nil {
+		log.Printf("Next video error", err)
+		return nil, err
 	}
 
 	if s.nextFlag {
@@ -141,10 +177,11 @@ func (s *Stream) Get() (*gocv.Mat, error) {
 
 	alpha := s.now_value / SWITCH_VALUE
 
-	next, err := s.now_video.Next()
-	if err != nil {
-		log.Printf("Next video error", err)
-		return nil, err
+	if alpha == 1.0 {
+		return next, nil
+	}
+	if alpha == 0.0 {
+		return old, nil
 	}
 
 	gocv.AddWeighted(*next, float64(alpha), *old, float64(1.0-alpha), 0.0, &s.now_image)
@@ -152,30 +189,35 @@ func (s *Stream) Get() (*gocv.Mat, error) {
 	return &s.now_image, nil
 }
 
-func (s *Stream) getOldImage() (*gocv.Mat, error) {
+func (s *Stream) getOldImage(next, now *gocv.Mat) *gocv.Mat {
 
 	if s.release_video == nil {
 		if s.old_video != nil {
-			return s.old_video.Next()
+			return next
 		}
-		return nil, nil
+		return nil
+	}
+
+	if next == nil {
+		return &s.old_image
+	}
+
+	if now == nil {
+		return &s.old_image
 	}
 
 	alpha := s.old_value / SWITCH_VALUE
 
-	next, _ := s.old_video.Next()
-	if next == nil {
-		return &s.old_image, nil
+	if alpha == 1.0 {
+		return next
 	}
-
-	now, _ := s.release_video.Next()
-	if now == nil {
-		return &s.old_image, nil
+	if alpha == 0.0 {
+		return now
 	}
 
 	gocv.AddWeighted(*next, float64(alpha), *now, float64(1.0-alpha), 0.0, &s.old_image)
 
-	return &s.old_image, nil
+	return &s.old_image
 }
 
 func (s *Stream) Release() {
