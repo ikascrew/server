@@ -32,7 +32,7 @@ func Start(p int, opts ...config.Option) error {
 	go func() {
 		err := startMulticast()
 		if err != nil {
-			log.Println("start multicast : %+v", err)
+			log.Printf("start multicast : %+v", err)
 		}
 	}()
 

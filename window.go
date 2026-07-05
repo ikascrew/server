@@ -70,7 +70,7 @@ func (w *Window) Play(v core.Video) error {
 		case v := <-w.wait:
 			err := w.stream.Switch(v)
 			if err != nil {
-				log.Printf("Stream Push Error:", err)
+				log.Printf("Stream Push Error: %v", err)
 			}
 		case <-interrupt:
 			if w.isPlaying() {
@@ -83,7 +83,7 @@ func (w *Window) Play(v core.Video) error {
 		default:
 			key, err := w.Display()
 			if err != nil {
-				log.Printf("Window Display Error:", err)
+				log.Printf("Window Display Error: %v", err)
 			}
 
 			//プレイ中(フルスクリーン)は終了操作を受け付けない

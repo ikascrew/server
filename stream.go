@@ -22,8 +22,6 @@ type Stream struct {
 
 	release_video core.Video
 
-	used map[string]bool
-
 	nextFlag bool
 	prevFlag bool
 
@@ -55,7 +53,6 @@ func NewStream() (*Stream, error) {
 	rtn.old_video = nil
 	rtn.release_video = nil
 
-	rtn.used = make(map[string]bool)
 	conf := config.Get()
 
 	w := conf.Width
@@ -79,17 +76,19 @@ func NewStream() (*Stream, error) {
 
 func (s *Stream) Switch(v core.Video) error {
 
-	if s.used[v.Source()] {
-		return fmt.Errorf("until used video")
+	//同一ソースの重複はエラーにせず受け付ける(ログのみ)
+	for _, cur := range []core.Video{s.now_video, s.old_video, s.release_video} {
+		if cur != nil && cur.Source() == v.Source() {
+			log.Printf("duplicate video source: %s", v.Source())
+			break
+		}
 	}
-	s.used[v.Source()] = true
 
 	s.old_value = s.now_value
 	s.now_value = 0
 
 	wk := s.release_video
 	if wk != nil {
-		delete(s.used, wk.Source())
 		defer wk.Release()
 	}
 
@@ -151,7 +150,7 @@ func (s *Stream) Get() (*gocv.Mat, error) {
 	}
 
 	if err != nil {
-		log.Printf("Next video error", err)
+		log.Printf("Next video error: %v", err)
 		return nil, err
 	}
 
