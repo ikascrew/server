@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/ikascrew/ikasbox/handler"
@@ -23,6 +22,9 @@ type Config struct {
 	Height    int
 	Default   Default
 	Contents  map[int]*Content
+
+	Headless bool
+	Verbose  bool
 }
 
 type Content struct {
@@ -78,7 +80,7 @@ func load(p int, conf *Config) error {
 
 	url := fmt.Sprintf("http://%s:%d/project/content/list/%d", conf.DBIP, conf.DBPort, p)
 
-	log.Println(url)
+	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return xerrors.Errorf("http get: %w", err)
