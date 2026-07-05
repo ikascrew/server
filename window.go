@@ -1,8 +1,9 @@
 package server
 
 import (
-	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"runtime"
 
 	"github.com/ikascrew/core"
@@ -54,6 +55,11 @@ func (w *Window) Play(v core.Video) error {
 	win.MoveWindow(0, 0)
 	win.ResizeWindow(640, 360)
 
+	//Ctrl+C はデフォルトの即時終了を無効化し、プレイ中でない時のみ受け付ける
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	defer signal.Stop(interrupt)
+
 	err := w.stream.Switch(v)
 	if err != nil {
 		return err
@@ -66,45 +72,58 @@ func (w *Window) Play(v core.Video) error {
 			if err != nil {
 				log.Printf("Stream Push Error:", err)
 			}
+		case <-interrupt:
+			if w.isPlaying() {
+				log.Println("Interrupt ignored : now playing(fullscreen)")
+			} else {
+				log.Println("Interrupt : shutdown")
+				w.Destroy()
+				return nil
+			}
 		default:
-			err := w.Display()
+			key, err := w.Display()
 			if err != nil {
 				log.Printf("Window Display Error:", err)
 			}
+
+			//プレイ中(フルスクリーン)は終了操作を受け付けない
+			if !w.isPlaying() {
+				if key == 27 { //ESC
+					log.Println("ESC : shutdown")
+					w.Destroy()
+					return nil
+				}
+				if win.GetWindowProperty(gocv.WindowPropertyVisible) < 1 {
+					log.Println("Window closed : shutdown")
+					w.Destroy()
+					return nil
+				}
+			}
 		}
 	}
+}
 
-	return fmt.Errorf("Error : Stream is nil")
+func (w *Window) isPlaying() bool {
+	return w.win.GetWindowProperty(gocv.WindowPropertyFullscreen) == float64(gocv.WindowFullscreen)
 }
 
 var counter = 0
 
-func (w *Window) Display() error {
-
-	/*
-		wg := new(sync.WaitGroup)
-		wg.Add(1)
-		go func() {
-			time.Sleep(w.stream.Wait() * time.Millisecond)
-			wg.Done()
-		}()
-	*/
+func (w *Window) Display() (int, error) {
 
 	//イメージを取得
 	img, err := w.stream.Get()
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	//作成
 	add := w.stream.Add(*img)
 	//表示
 	w.win.IMShow(*add)
-	w.win.WaitKey(int(w.stream.Wait()))
+	key := w.win.WaitKey(int(w.stream.Wait()))
 
-	//wg.Wait()
-
-	return nil
+	return key, nil
 }
 
 func (w *Window) SetSwitch(t string) error {
@@ -116,5 +135,9 @@ func (w *Window) Destroy() {
 }
 
 func (w *Window) FullScreen() {
-	w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowFullscreen)
+	if w.win.GetWindowProperty(gocv.WindowPropertyFullscreen) == float64(gocv.WindowFullscreen) {
+		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowNormal)
+	} else {
+		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowFullscreen)
+	}
 }
