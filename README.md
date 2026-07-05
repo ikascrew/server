@@ -1,37 +1,50 @@
+# ikascrew server
 
-ikasboxと統合
+ikascrew(VJシステム)の映像サーバ。
+OpenCV のウィンドウに映像を描画し、gRPC 経由で切り替え・エフェクト操作を受け付ける。
 
- クライアントからの一覧取得をgRPC化
- ※ファイルがいけるか？
+## 使い方
 
- headlessモードを作成（DBのみ使用する場合）
-   -> リクエストがあれば作成？
+事前に ikasbox からプロジェクト情報を取得してワークファイルを作成する。
+実行時に ikasbox は不要(ワークファイルのみ参照)。
 
+```
+go run ./cmd/ika-server create <project-id>   # ワーク(.server/config.json)を作成 ※ikasbox が必要
+go run ./cmd/ika-server start                 # サーバ起動 ※ikasbox 不要
+```
 
-opencv
+### 終了方法
 
-AddWeighted()
+フルスクリーン中はプレイ中とみなし、終了操作(ESC / ☓ボタン / Ctrl+C)をすべて無視する。
+終了するには gRPC の Sync でフルスクリーンを解除(トグル)してから、ESC / ☓ / Ctrl+C のいずれかを行う。
 
-BitwiseAnd(),BitwiseOr(),BitwiseNot(),BitwiseXor() + WithMask
+## TODO / 設計メモ
 
-マスク処理
+クライアントからの一覧取得をワークファイル方式に統一(クライアント側も .client を利用中)
 
-BatchDistance()
+### エフェクトの設計変更
 
-BorderInterpolate()
+現状 AddWeighted でのクロスフェード(switch)しかないため、分離して拡張する。
 
-CalcCovarMatrix()
+- effect -> 現状の Wait や Light -> 個別にビデオにかけられるようにする
+- transition -> 現行の switch
 
-CartToPolar()
+Stream はサーバ固有の Video で、effect を持った Video 同士の transition に利用し、
+クライアントで Video + effect を作成し、transition で切り替える。
 
-現状AddWeighted()でのswitch処理しかないエフェクトを
-モーフカットのようなエフェクトなどを行えるようにする
+クライアントは次のビデオ作成と push を行って、transition はマニュアルか任せる。
 
-effect -> 現状のWaitやLight -> 個別にビデオにかけれるようにする
-transition -> 現行のswitch
+### transition 候補(OpenCV)
 
-Stream はサーバ固有のVideoで、effectを持ったVideo同士のtransitionに利用し、
-クライアントでVideo + effectを作成し、transitionで切り替える
+- マスク処理によるワイプ(CopyToWithMask + 矩形/円形マスク)
+- BitwiseAnd(), BitwiseOr(), BitwiseNot(), BitwiseXor() + WithMask
+- 輝度キー合成(Threshold -> CopyToWithMask)
+- モーフカットのようなエフェクト
 
-クライアントは次のビデオ作成とpushを行って、transitionはマニュアルか任せる
-マニュアルの場合
+### effect 候補(OpenCV)
+
+- 色相シフト(CvtColor HSV)
+- ネガ反転(BitwiseNot)
+- 残像フィードバック(前フレームと AddWeighted)
+- 色収差(Split / Merge + ずらし)
+- 波形歪み(Remap)
