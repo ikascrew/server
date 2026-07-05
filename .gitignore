@@ -1,4 +1,5 @@
 .client
+.server
 *.mp4
 *.jpg
 *.jpeg

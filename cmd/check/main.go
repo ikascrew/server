@@ -1,18 +1,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/ikascrew/server"
 	"github.com/ikascrew/server/config"
-
-	"golang.org/x/xerrors"
 )
 
 func main() {
@@ -31,22 +27,8 @@ func main() {
 
 func run() error {
 
-	flag.Parse()
-	args := flag.Args()
-
-	l := len(args)
-	if l < 1 {
-		return xerrors.Errorf("ika-server start arguments project id required")
-	}
-
-	project := args[0]
-	p, err := strconv.Atoi(project)
-	if err != nil {
-		return xerrors.Errorf("project id is int value(%s): %w", project, err)
-	}
-
 	go func() {
-		err = server.Start(p)
+		err := server.Start()
 		if err != nil {
 			log.Printf("server start: %+v", err)
 		}

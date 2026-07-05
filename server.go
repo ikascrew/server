@@ -21,9 +21,9 @@ type IkascrewServer struct {
 
 var server *IkascrewServer
 
-func Start(p int, opts ...config.Option) error {
+func Start(opts ...config.Option) error {
 
-	err := config.Set(p, opts...)
+	err := config.Set(opts...)
 	if err != nil {
 		return xerrors.Errorf("config error: %w", err)
 	}
