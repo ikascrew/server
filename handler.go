@@ -65,20 +65,26 @@ func (i *IkascrewServer) Effect(ctx context.Context, r *pb.EffectRequest) (*pb.E
 	if !ok {
 		return nil, fmt.Errorf("Content not found[%d]", r.Id)
 	}
-	fmt.Printf("[%s]-[%s]\n", r.Type, content.Path)
-	if strings.Index(content.Path, ".jpg") >= 0 ||
-		strings.Index(content.Path, ".jpeg") >= 0 ||
-		strings.Index(content.Path, ".png") >= 0 {
-		r.Type = "img"
+
+	// 型とパラメータは work file(ikasbox 由来)を正とし、
+	// client からの型申告は Type を持たない旧 work file の救済にのみ使う。
+	// 型名の正規化(image→img 等)は plugin/video 側で行われる
+	t := content.Type
+	if t == "" {
+		t = r.Type
+		if isImagePath(content.Path) {
+			t = "img"
+		}
 	}
 
-	if strings.Index(content.Path, "jpg") != -1 ||
-		strings.Index(content.Path, ".jpeg") != -1 ||
-		strings.Index(content.Path, ".png") != -1 {
-		r.Type = "img"
+	param := content.Params
+	if param == "" {
+		param = content.Path
 	}
 
-	v, err := Get(r.Type, content.Path)
+	fmt.Printf("[%s]-[%s]\n", t, param)
+
+	v, err := Get(t, param)
 	if err != nil {
 		return rep, err
 	}
@@ -90,6 +96,14 @@ func (i *IkascrewServer) Effect(ctx context.Context, r *pb.EffectRequest) (*pb.E
 
 	rep.Success = true
 	return rep, nil
+}
+
+// isImagePath は旧 work file(Type 無し)向けの拡張子判定
+func isImagePath(p string) bool {
+	l := strings.ToLower(p)
+	return strings.HasSuffix(l, ".jpg") ||
+		strings.HasSuffix(l, ".jpeg") ||
+		strings.HasSuffix(l, ".png")
 }
 
 func (i *IkascrewServer) Switch(ctx context.Context, r *pb.SwitchRequest) (*pb.SwitchReply, error) {

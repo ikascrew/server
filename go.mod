@@ -1,6 +1,6 @@
 module github.com/ikascrew/server
 
-go 1.21
+go 1.25.0
 
 require (
 	github.com/ikascrew/core v0.0.0-20210324041206-fb346c8e5c80
@@ -21,10 +21,15 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/monochromegane/argen v0.0.0-20150711140148-c37112f9dc50 // indirect
 	github.com/monochromegane/goban v0.0.0-20141019070712-284a52313eb5 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto v0.0.0-20200710124503-20a17af7bd0e // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 )
 
 replace github.com/ikascrew/core => ../core
+
+replace github.com/ikascrew/plugin => ../plugin
+
+replace github.com/ikascrew/ikasbox => ../ikasbox

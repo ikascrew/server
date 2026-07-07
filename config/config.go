@@ -42,6 +42,8 @@ type Content struct {
 	ContentID int
 	Name      string
 	Path      string
+	Type      string
+	Params    string
 }
 
 type Default struct {
@@ -170,6 +172,8 @@ func load(p int, conf *Config) error {
 		con.Name = elm.Name
 		con.Path = elm.Path
 		con.ContentID = elm.ID
+		con.Type = elm.Type
+		con.Params = elm.Params
 
 		conf.Contents[elm.ID] = &con
 

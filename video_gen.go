@@ -1,42 +1,14 @@
 package server
 
 import (
-	"fmt"
-
 	"github.com/ikascrew/core"
-
-	cd "github.com/ikascrew/plugin/countdown"
-	file "github.com/ikascrew/plugin/file"
-	img "github.com/ikascrew/plugin/image"
-	term "github.com/ikascrew/plugin/terminal"
-
-	"golang.org/x/xerrors"
+	"github.com/ikascrew/plugin/video"
 )
 
-var NotFoundError = fmt.Errorf("NotFound Video Type")
+var NotFoundError = video.NotFoundError
 
-func Get(t string, params ...string) (core.Video, error) {
-
-	var v core.Video
-	var err error
-
-	switch t {
-	case "file":
-		v, err = file.New(params...)
-	case "img":
-		v, err = img.New(params...)
-	case "cd":
-		v, err = cd.New(params...)
-	case "terminal":
-		v, err = term.New(params...)
-	}
-
-	if err != nil {
-		return nil, xerrors.Errorf("video new[%s]: %w", t, err)
-	}
-
-	if v == nil {
-		return nil, NotFoundError
-	}
-	return v, nil
+// Get は型名と JSON param から Video を生成する。
+// 対応表と型名の正規化は plugin/video レジストリに集約されている
+func Get(t string, param string) (core.Video, error) {
+	return video.Get(t, param)
 }
