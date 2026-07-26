@@ -247,17 +247,17 @@ func (s *Stream) Wait() float64 {
 }
 
 func (s *Stream) PrintVideos(line string) {
-	log.Printf(line + "-------------------------------------------------")
+	log.Print(line + "-------------------------------------------------")
 	if s.now_video != nil {
-		log.Printf("[1]" + s.now_video.Source())
+		log.Print("[1]" + s.now_video.Source())
 	}
 
 	if s.old_video != nil {
-		log.Printf("[2]" + s.old_video.Source())
+		log.Print("[2]" + s.old_video.Source())
 	}
 
 	if s.release_video != nil {
-		log.Printf("[3]" + s.release_video.Source())
+		log.Print("[3]" + s.release_video.Source())
 	}
 }
 

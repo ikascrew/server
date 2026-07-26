@@ -209,7 +209,7 @@ func TestStreamWait(t *testing.T) {
 		want float64
 	}{
 		{0, 33},
-		{66, 1},    // 33 - 33 = 0, clamped to 1
+		{66, 1},     // 33 - 33 = 0, clamped to 1
 		{-134, 100}, // 33 + 67 = 100, exactly the upper clamp
 		{-300, 100}, // 33 + 150 = 183, clamped to 100
 		{200, 1},    // 33 - 100 = -67, clamped to 1

@@ -11,6 +11,7 @@ import (
 	"github.com/ikascrew/server/config"
 
 	"golang.org/x/xerrors"
+	"google.golang.org/grpc"
 )
 
 func init() {
@@ -23,6 +24,10 @@ type IkascrewServer struct {
 	pb.UnimplementedIkascrewServer
 
 	window *Window
+
+	// rpc は startRPC が組み立てる gRPC サーバー。テストから
+	// 任意のリスナ(bufconn)で Serve / Stop するために保持している
+	rpc *grpc.Server
 }
 
 var server *IkascrewServer
@@ -82,7 +87,7 @@ func Start(opts ...config.Option) error {
 	return win.Play(v)
 }
 
-//test method
+// test method
 func Set(id int) error {
 	req := pb.EffectRequest{}
 	req.Id = int64(id)
@@ -91,7 +96,7 @@ func Set(id int) error {
 	return err
 }
 
-//test method
+// test method
 func Put(idx int) error {
 	req := pb.VolumeMessage{}
 
