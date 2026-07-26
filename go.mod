@@ -10,13 +10,13 @@ require (
 	github.com/shirou/gopsutil v2.20.6+incompatible
 	golang.org/x/net v0.56.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.60.1
 )
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
-	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
@@ -27,8 +27,8 @@ require (
 	gocv.io/x/gocv v0.43.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
-	google.golang.org/genproto v0.0.0-20200710124503-20a17af7bd0e // indirect
-	google.golang.org/protobuf v1.25.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 )
 
@@ -37,3 +37,5 @@ replace github.com/ikascrew/core => ../core
 replace github.com/ikascrew/plugin => ../plugin
 
 replace github.com/ikascrew/ikasbox => ../ikasbox
+
+replace github.com/ikascrew/pb => ../pb

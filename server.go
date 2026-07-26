@@ -17,6 +17,11 @@ func init() {
 }
 
 type IkascrewServer struct {
+	// 前方互換のため生成コードの既定実装を埋め込む(protoc-gen-go-grpc の
+	// mustEmbedUnimplementedIkascrewServer 要求)。.proto に RPC が増えても
+	// この型は Unimplemented を返してコンパイルが通り続ける
+	pb.UnimplementedIkascrewServer
+
 	window *Window
 }
 
