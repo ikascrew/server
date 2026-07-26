@@ -8,8 +8,8 @@ require (
 	github.com/ikascrew/pb v0.0.0-20200229215417-95f0a80962e7
 	github.com/ikascrew/plugin v0.0.0-20200715234203-87c9c5b19416
 	github.com/shirou/gopsutil v2.20.6+incompatible
-	gocv.io/x/gocv v0.38.0
-	golang.org/x/net v0.23.0
+	gocv.io/x/gocv v0.43.0
+	golang.org/x/net v0.56.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 	google.golang.org/grpc v1.30.0
 )
@@ -22,8 +22,8 @@ require (
 	github.com/monochromegane/argen v0.0.0-20150711140148-c37112f9dc50 // indirect
 	github.com/monochromegane/goban v0.0.0-20141019070712-284a52313eb5 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/genproto v0.0.0-20200710124503-20a17af7bd0e // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 )
