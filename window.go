@@ -7,8 +7,9 @@ import (
 	"runtime"
 
 	"github.com/ikascrew/core"
+	"github.com/ikascrew/core/window"
 
-	"gocv.io/x/gocv"
+	"golang.org/x/xerrors"
 )
 
 func init() {
@@ -17,10 +18,15 @@ func init() {
 type Window struct {
 	name string
 	wait chan core.Video
+	done chan struct{}
 
-	win *gocv.Window
+	win *window.Window
 
 	stream *Stream
+
+	// 終了処理の先頭で呼ばれるフック(gRPC サーバの停止など)。
+	// ストリーム解放より先に外部からの操作を止めるために使う
+	onShutdown func()
 }
 
 func NewWindow(name string) (*Window, error) {
@@ -29,6 +35,7 @@ func NewWindow(name string) (*Window, error) {
 
 	rtn.name = name
 	rtn.wait = make(chan core.Video)
+	rtn.done = make(chan struct{})
 
 	var err error
 	rtn.stream, err = NewStream()
@@ -36,10 +43,13 @@ func NewWindow(name string) (*Window, error) {
 }
 
 func (w *Window) Push(v core.Video) error {
-	w.wait <- v
-
-	//w.stream.PrintVideos("Push")
-	return nil
+	//シャットダウン後はレンダーループが受け取らないため、ブロックせずエラーを返す
+	select {
+	case w.wait <- v:
+		return nil
+	case <-w.done:
+		return xerrors.New("server is shutting down")
+	}
 }
 
 func (w *Window) Play(v core.Video) error {
@@ -47,20 +57,24 @@ func (w *Window) Play(v core.Video) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	win := gocv.NewWindow(w.name)
+	win, err := window.New(w.name)
+	if err != nil {
+		return xerrors.Errorf("window new: %w", err)
+	}
+	//破棄済みウィンドウの再 Close 対策(cv::Exception)は window 側が吸収する
 	defer win.Close()
 
 	w.win = win
 
-	win.MoveWindow(0, 0)
-	win.ResizeWindow(640, 360)
+	win.Move(0, 0)
+	win.Resize(640, 360)
 
 	//Ctrl+C はデフォルトの即時終了を無効化し、プレイ中でない時のみ受け付ける
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	defer signal.Stop(interrupt)
 
-	err := w.stream.Switch(v)
+	err = w.stream.Switch(v)
 	if err != nil {
 		return err
 	}
@@ -77,10 +91,16 @@ func (w *Window) Play(v core.Video) error {
 				log.Println("Interrupt ignored : now playing(fullscreen)")
 			} else {
 				log.Println("Interrupt : shutdown")
-				w.Destroy()
-				return nil
+				return w.shutdown()
 			}
 		default:
+			//☓や Alt+F4 で破棄済みのウィンドウへの描画・問い合わせは
+			//cv::Exception でプロセスごと落ちるため、先に生存確認する
+			if w.closed() {
+				log.Println("Window closed : shutdown")
+				return w.shutdown()
+			}
+
 			key, err := w.Display()
 			if err != nil {
 				log.Printf("Window Display Error: %v", err)
@@ -90,21 +110,32 @@ func (w *Window) Play(v core.Video) error {
 			if !w.isPlaying() {
 				if key == 27 { //ESC
 					log.Println("ESC : shutdown")
-					w.Destroy()
-					return nil
-				}
-				if win.GetWindowProperty(gocv.WindowPropertyVisible) < 1 {
-					log.Println("Window closed : shutdown")
-					w.Destroy()
-					return nil
+					return w.shutdown()
 				}
 			}
 		}
 	}
 }
 
+// shutdown は安全な終了手順を実行する。
+// 新規 Push を止め、gRPC サーバ等を停止してから動画・フレームを解放する。
+// ウィンドウ自体は Play の defer(win.Close)で閉じる
+func (w *Window) shutdown() error {
+	close(w.done)
+	if w.onShutdown != nil {
+		w.onShutdown()
+	}
+	w.Destroy()
+	return nil
+}
+
+// closed はウィンドウが破棄済みかを返す
+func (w *Window) closed() bool {
+	return w.win.Closed()
+}
+
 func (w *Window) isPlaying() bool {
-	return w.win.GetWindowProperty(gocv.WindowPropertyFullscreen) == float64(gocv.WindowFullscreen)
+	return w.win.IsFullscreen()
 }
 
 var counter = 0
@@ -118,9 +149,9 @@ func (w *Window) Display() (int, error) {
 	}
 
 	//作成
-	add := w.stream.Add(*img)
+	add := w.stream.Add(img)
 	//表示
-	w.win.IMShow(*add)
+	w.win.Show(add)
 	key := w.win.WaitKey(int(w.stream.Wait()))
 
 	return key, nil
@@ -135,9 +166,5 @@ func (w *Window) Destroy() {
 }
 
 func (w *Window) FullScreen() {
-	if w.win.GetWindowProperty(gocv.WindowPropertyFullscreen) == float64(gocv.WindowFullscreen) {
-		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowNormal)
-	} else {
-		w.win.SetWindowProperty(gocv.WindowPropertyFullscreen, gocv.WindowFullscreen)
-	}
+	w.win.ToggleFullscreen()
 }

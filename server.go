@@ -7,6 +7,7 @@ import (
 
 	mc "github.com/ikascrew/core/multicast"
 	"github.com/ikascrew/pb"
+	"github.com/ikascrew/plugin/video/output"
 	"github.com/ikascrew/server/config"
 
 	"golang.org/x/xerrors"
@@ -26,6 +27,15 @@ func Start(opts ...config.Option) error {
 	err := config.Set(opts...)
 	if err != nil {
 		return xerrors.Errorf("config error: %w", err)
+	}
+
+	// 生成型プラグインにプロジェクトの解像度を伝える。
+	// Stream はリサイズせずに合成するため、プラグインの描画サイズは
+	// ここで設定した解像度と一致している必要がある。
+	// 未作成(-ikasbox の初回起動)時は output 側の既定解像度に任せる
+	conf := config.Get()
+	if conf.Width > 0 && conf.Height > 0 {
+		output.Set(conf.Width, conf.Height)
 	}
 
 	//server multicast
@@ -57,6 +67,12 @@ func Start(opts ...config.Option) error {
 	}()
 
 	server = ika
+
+	// ikasbox 同居モード(-ikasbox): HTTP :5555 を同一プロセスで起動し、
+	// UI からの work file 作成(v1/server/create)を受け付ける
+	if conf.Ikasbox {
+		startIkasbox(conf.IkasboxDB)
+	}
 
 	return win.Play(v)
 }

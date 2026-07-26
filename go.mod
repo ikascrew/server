@@ -8,7 +8,6 @@ require (
 	github.com/ikascrew/pb v0.0.0-20200229215417-95f0a80962e7
 	github.com/ikascrew/plugin v0.0.0-20200715234203-87c9c5b19416
 	github.com/shirou/gopsutil v2.20.6+incompatible
-	gocv.io/x/gocv v0.43.0
 	golang.org/x/net v0.56.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 	google.golang.org/grpc v1.30.0
@@ -18,14 +17,19 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
+	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/monochromegane/argen v0.0.0-20150711140148-c37112f9dc50 // indirect
 	github.com/monochromegane/goban v0.0.0-20141019070712-284a52313eb5 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
+	gocv.io/x/gocv v0.43.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/genproto v0.0.0-20200710124503-20a17af7bd0e // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
+	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 )
 
 replace github.com/ikascrew/core => ../core

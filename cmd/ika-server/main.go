@@ -26,20 +26,25 @@ func main() {
 	os.Exit(0)
 }
 
+var (
+	ikasboxFlag = flag.Bool("ikasbox", false, "ikasbox(HTTP :5555)を同一プロセスで同居起動する")
+	dbFlag      = flag.String("db", "ikasbox.db", "-ikasbox 時に使う ikasbox.db のパス")
+)
+
 func run() error {
 
 	flag.Parse()
 	args := flag.Args()
 
 	if len(args) < 1 {
-		return xerrors.New("usage: ika-server create <project-id> | ika-server start")
+		return xerrors.New("usage: ika-server create <project-id> | ika-server [-ikasbox [-db <path>]] start")
 	}
 
 	switch args[0] {
 	case "create":
 		return create(args[1:])
 	case "start":
-		return start()
+		return start(args[1:])
 	}
 
 	return xerrors.Errorf("unknown command(%s)", args[0])
@@ -65,9 +70,24 @@ func create(args []string) error {
 	return nil
 }
 
-func start() error {
+// start はサブコマンド後ろのフラグ("start -ikasbox ...")も受け付ける。
+// Go 標準 flag は最初の非フラグ引数でパースを止めるため、
+// グローバル側("-ikasbox start")の値を初期値にして再パースする
+func start(args []string) error {
 
-	err := server.Start()
+	fs := flag.NewFlagSet("start", flag.ContinueOnError)
+	ikasbox := fs.Bool("ikasbox", *ikasboxFlag, "ikasbox(HTTP :5555)を同一プロセスで同居起動する")
+	db := fs.String("db", *dbFlag, "-ikasbox 時に使う ikasbox.db のパス")
+	if err := fs.Parse(args); err != nil {
+		return xerrors.Errorf("start flags: %w", err)
+	}
+
+	var opts []config.Option
+	if *ikasbox {
+		opts = append(opts, config.Ikasbox(*db))
+	}
+
+	err := server.Start(opts...)
 	if err != nil {
 		return xerrors.Errorf("server start: %w", err)
 	}

@@ -14,8 +14,11 @@ Requires OpenCV installed locally (gocv dependency). There are no tests in this 
 go build ./...                          # build everything
 go run ./cmd/ika-server create <id>     # fetch project from ikasbox, write work file .server/config.json
 go run ./cmd/ika-server start           # run the server from the work file (no ikasbox needed)
+go run ./cmd/ika-server -ikasbox [-db <path>] start   # co-hosted mode: also runs ikasbox HTTP :5555 in-process
 go run ./cmd/check                      # manual smoke test: cycles through all contents with transitions
 ```
+
+**Co-hosted mode (`-ikasbox`)**: `ikasbox.go` starts ikasbox (HTTP :5555) inside the same process (`ikasbox.Start` in a goroutine) and registers two extra API endpoints via `api.AddEndpoint`: `v1/server/status` (capability probe — the React UI shows a per-project "Server" button only when this answers) and `v1/server/create` (writes the work file via the same loopback HTTP path as CLI create, then hot-reloads `config` and `output.Set`). Creating is refused while fullscreen (= performing). In this mode the server starts even without a work file (empty mapping until created from the UI). Do not run a standalone ikasbox against the same DB simultaneously (SQLite locking). `config.Reload` swaps the config under an RWMutex; in-flight handlers keep their snapshot.
 
 `create` requires a reachable ikasbox server (default `localhost:5555`, endpoint `http://<DBIP>:<DBPort>/project/content/list/<project-id>`); `start` and `check` only need the previously created `.server/config.json` (gitignored). gRPC listens on port 55555 by default (configurable via `config.Option` functions in `config/option.go`).
 

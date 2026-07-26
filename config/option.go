@@ -16,3 +16,13 @@ func Database(ip string, port int) Option {
 		return nil
 	}
 }
+
+// Ikasbox は ikasbox(HTTP :5555)を同一プロセス内で同居起動する
+// モードを有効にする。db は ikasbox.db のパス
+func Ikasbox(db string) Option {
+	return func(conf *Config) error {
+		conf.Ikasbox = true
+		conf.IkasboxDB = db
+		return nil
+	}
+}

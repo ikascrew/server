@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/ikascrew/ikasbox/handler"
 
@@ -36,6 +37,11 @@ type Config struct {
 
 	Headless bool
 	Verbose  bool
+
+	// ikasbox 同居モード(-ikasbox)。実行時フラグであり
+	// work file には保存しない
+	Ikasbox   bool   `json:"-"`
+	IkasboxDB string `json:"-"`
 }
 
 type Content struct {
@@ -52,6 +58,10 @@ type Default struct {
 }
 
 var gConf *Config
+
+// gRPC ハンドラと同居 ikasbox の作成 API が並行に触るため、
+// gConf の差し替え(Reload)と参照は排他する
+var gMu sync.RWMutex
 
 func init() {
 	gConf = nil
@@ -91,19 +101,19 @@ func Create(p int, opts ...Option) error {
 	return nil
 }
 
-// Set はワークファイルから設定を読み込む(ikasbox には接続しない)
+// Set はワークファイルから設定を読み込む(ikasbox には接続しない)。
+// ikasbox 同居モード(Ikasbox オプション)のときだけは work file が
+// 無くても既定値で起動を許す(初回は UI の create で作成するため)
 func Set(opts ...Option) error {
 
 	conf := defaultConfig()
 
-	buf, err := ioutil.ReadFile(WorkPath())
-	if err != nil {
-		return xerrors.Errorf("read work file(%s). run \"create\" first: %w", WorkPath(), err)
-	}
-
-	err = json.Unmarshal(buf, conf)
-	if err != nil {
-		return xerrors.Errorf("work file unmarshal: %w", err)
+	buf, readErr := ioutil.ReadFile(WorkPath())
+	if readErr == nil {
+		err := json.Unmarshal(buf, conf)
+		if err != nil {
+			return xerrors.Errorf("work file unmarshal: %w", err)
+		}
 	}
 
 	for _, opt := range opts {
@@ -113,12 +123,54 @@ func Set(opts ...Option) error {
 		}
 	}
 
+	if readErr != nil {
+		if !conf.Ikasbox {
+			return xerrors.Errorf("read work file(%s). run \"create\" first: %w", WorkPath(), readErr)
+		}
+		fmt.Printf("work file not found(%s): starting empty. create it from the ikasbox UI\n", WorkPath())
+	}
+
+	gMu.Lock()
 	gConf = conf
+	gMu.Unlock()
+
+	return nil
+}
+
+// Reload は work file を読み直して設定を差し替える(ホットリロード)。
+// 実行時のみのフラグ(Ikasbox 等)は現在の設定から引き継ぐ。
+// 呼び出し側はスナップショット(Get の返り値)を使い続けられるため、
+// 再生中の動画には影響せず、以後の参照から新しい設定が効く
+func Reload() error {
+
+	conf := defaultConfig()
+
+	buf, err := ioutil.ReadFile(WorkPath())
+	if err != nil {
+		return xerrors.Errorf("read work file(%s): %w", WorkPath(), err)
+	}
+
+	err = json.Unmarshal(buf, conf)
+	if err != nil {
+		return xerrors.Errorf("work file unmarshal: %w", err)
+	}
+
+	gMu.Lock()
+	if gConf != nil {
+		conf.Ikasbox = gConf.Ikasbox
+		conf.IkasboxDB = gConf.IkasboxDB
+		conf.Headless = gConf.Headless
+		conf.Verbose = gConf.Verbose
+	}
+	gConf = conf
+	gMu.Unlock()
 
 	return nil
 }
 
 func Get() *Config {
+	gMu.RLock()
+	defer gMu.RUnlock()
 	return gConf
 }
 
@@ -142,6 +194,10 @@ func load(p int, conf *Config) error {
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return xerrors.Errorf("ikasbox response %s: project[%d] not found?", resp.Status, p)
+	}
 
 	byteArray, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

@@ -7,26 +7,24 @@ import (
 
 	"github.com/ikascrew/core"
 	"github.com/ikascrew/server/config"
-
-	"gocv.io/x/gocv"
 )
 
 type Stream struct {
 	now_video core.Video
 	now_value float64
-	now_image gocv.Mat
+	now_image *core.Frame
 
 	old_video core.Video
 	old_value float64
-	old_image gocv.Mat
+	old_image *core.Frame
 
 	release_video core.Video
 
 	nextFlag bool
 	prevFlag bool
 
-	empty_image gocv.Mat
-	real_image  gocv.Mat
+	empty_image *core.Frame
+	real_image  *core.Frame
 
 	light float64
 	wait  float64
@@ -58,14 +56,14 @@ func NewStream() (*Stream, error) {
 	w := conf.Width
 	h := conf.Height
 
-	rtn.now_image = gocv.NewMatWithSize(h, w, gocv.MatTypeCV8UC3)
-	rtn.old_image = gocv.NewMatWithSize(h, w, gocv.MatTypeCV8UC3)
+	rtn.now_image = core.NewFrame(w, h)
+	rtn.old_image = core.NewFrame(w, h)
 
 	rtn.nextFlag = false
 	rtn.prevFlag = false
 
-	rtn.empty_image = gocv.NewMatWithSize(h, w, gocv.MatTypeCV8UC3)
-	rtn.real_image = gocv.NewMatWithSize(h, w, gocv.MatTypeCV8UC3)
+	rtn.empty_image = core.NewFrame(w, h)
+	rtn.real_image = core.NewFrame(w, h)
 
 	rtn.light = 0
 
@@ -99,22 +97,22 @@ func (s *Stream) Switch(v core.Video) error {
 	return nil
 }
 
-func (s *Stream) Add(org gocv.Mat) *gocv.Mat {
+func (s *Stream) Add(org *core.Frame) *core.Frame {
 
 	if s.light == 0 {
-		return &org
+		return org
 	}
 
 	alpha := s.light / 200 * -1
-	gocv.AddWeighted(s.empty_image, float64(alpha), org, float64(1.0-alpha), 0.0, &s.real_image)
+	core.AddWeighted(s.empty_image, float64(alpha), org, float64(1.0-alpha), 0.0, s.real_image)
 
-	return &s.real_image
+	return s.real_image
 }
 
-func (s *Stream) Get() (*gocv.Mat, error) {
+func (s *Stream) Get() (*core.Frame, error) {
 
 	//3本のデコードは独立しているため並列に実行する
-	var next, oldNext, relNext *gocv.Mat
+	var next, oldNext, relNext *core.Frame
 	var err error
 
 	var wg sync.WaitGroup
@@ -183,12 +181,12 @@ func (s *Stream) Get() (*gocv.Mat, error) {
 		return old, nil
 	}
 
-	gocv.AddWeighted(*next, float64(alpha), *old, float64(1.0-alpha), 0.0, &s.now_image)
+	core.AddWeighted(next, float64(alpha), old, float64(1.0-alpha), 0.0, s.now_image)
 
-	return &s.now_image, nil
+	return s.now_image, nil
 }
 
-func (s *Stream) getOldImage(next, now *gocv.Mat) *gocv.Mat {
+func (s *Stream) getOldImage(next, now *core.Frame) *core.Frame {
 
 	if s.release_video == nil {
 		if s.old_video != nil {
@@ -198,11 +196,11 @@ func (s *Stream) getOldImage(next, now *gocv.Mat) *gocv.Mat {
 	}
 
 	if next == nil {
-		return &s.old_image
+		return s.old_image
 	}
 
 	if now == nil {
-		return &s.old_image
+		return s.old_image
 	}
 
 	alpha := s.old_value / SWITCH_VALUE
@@ -214,9 +212,9 @@ func (s *Stream) getOldImage(next, now *gocv.Mat) *gocv.Mat {
 		return now
 	}
 
-	gocv.AddWeighted(*next, float64(alpha), *now, float64(1.0-alpha), 0.0, &s.old_image)
+	core.AddWeighted(next, float64(alpha), now, float64(1.0-alpha), 0.0, s.old_image)
 
-	return &s.old_image
+	return s.old_image
 }
 
 func (s *Stream) Release() {

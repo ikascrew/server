@@ -9,6 +9,8 @@ import (
 
 	"github.com/ikascrew/server"
 	"github.com/ikascrew/server/config"
+
+	"golang.org/x/xerrors"
 )
 
 func main() {
@@ -27,18 +29,25 @@ func main() {
 
 func run() error {
 
+	//server.Start はウィンドウを閉じるまでブロックするため goroutine で起動し、
+	//5秒以内に返ってきた場合は起動失敗としてエラーを持ち帰る
+	startErr := make(chan error, 1)
 	go func() {
-		err := server.Start()
-		if err != nil {
-			log.Printf("server start: %+v", err)
-		}
+		startErr <- server.Start()
 	}()
 
-	//10s
 	log.Println("Wait... 5 second")
-	time.Sleep(5 * time.Second)
+	select {
+	case err := <-startErr:
+		return xerrors.Errorf("server start (run \"ika-server create <project-id>\" first?): %w", err)
+	case <-time.After(5 * time.Second):
+	}
 
 	conf := config.Get()
+	if conf == nil || len(conf.Contents) == 0 {
+		return xerrors.New("no contents in work file. run \"ika-server create <project-id>\" first")
+	}
+
 	for key, data := range conf.Contents {
 		log.Println(data)
 		err := server.Set(key)
