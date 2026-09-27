@@ -8,7 +8,7 @@ Video server component of the **ikascrew** VJ (video jockey) system. It renders 
 
 ## Build & Run
 
-Requires OpenCV installed locally (gocv dependency). There are no tests in this repo.
+Requires OpenCV installed locally (gocv dependency). Tests cover the package root (`handler_test.go`, `stream_test.go`, `opening_test.go`, `video_gen_test.go`) and `config/`; run them with `go test ./...`.
 
 ```
 go build ./...                          # build everything
