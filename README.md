@@ -22,6 +22,14 @@ go run ./cmd/ika-server start                 # サーバ起動 ※ikasbox 不�
 
 クライアントからの一覧取得をワークファイル方式に統一(クライアント側も .client を利用中)
 
+### Next() のパニック捕捉(safeNext)
+
+2026-07-26 の作業ツリー消失で失われ、まだ作り直していない。
+
+- `stream.go` の `Stream.Get` は 3 本のビデオの `Next()` を goroutine から直接呼んでいる。プラグインが `Next()` でパニックすると server ごと落ちる
+- 消失前は `safeNext` で `recover()` し、エラーとして返していた(`stream_test.go` の `TestStreamGetPropagatesNextError` のコメントに名前だけ残っている)
+- goroutine 内のパニックは呼び出し側で捕まえられないので、各 goroutine の中で `recover()` する必要がある
+
 ### エフェクトの設計変更
 
 現状 AddWeighted でのクロスフェード(switch)しかないため、分離して拡張する。
